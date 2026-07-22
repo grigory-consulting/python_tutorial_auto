@@ -20,7 +20,7 @@ def randomdigit(): #, no parameters
 
 print(randomdigit())
 
-help(randomdigit)
+#help(randomdigit)
 
 
 def add_three_numbers(a,b,c=1):
@@ -89,3 +89,74 @@ def outer():
     print(x)
 
 outer()
+
+
+# Higher-order functions 
+
+def add_five(x):
+    return x + 5 
+
+def do_twice(func, arg): # function is given by the parameter 
+    return func(func(arg)) # apply given function twice 
+
+print(do_twice(add_five, 3))
+
+# Closure (return value is a function, factory function)
+
+
+def multiplier(factor):
+    def multiply(number):
+        return number*factor
+    return multiply # return function 
+
+double = multiplier(2)
+print(double(14))
+
+# Following function was generated be multiplier(2)
+# def double(number):
+#     return number*2
+
+triple = multiplier(3)
+print(triple(4))
+
+
+# Anomymous function (lambda)
+
+square = lambda x: x*x # function without name = name is optional 
+print(square(5))
+
+mul = lambda x,y:x*y # multiple parameters
+
+double_x = lambda x: (x,x) # multiple return values 
+
+# usually you need only list comprehension 
+
+nums = [1,2,3,4,5,6]
+res = list(map(lambda x: x+x, nums)) # map ... apply a function to each element of the list 
+
+print(res)
+
+# TODO represent list(map(lambda x: x+x, nums)) as a list comprehension 
+
+res = [x+x for x in nums] 
+print(res)
+
+nums = [1,2,3,4,5,6]
+nums2 = [10,20,30,40,50,60]
+res = list(map(lambda x,y: x+y, nums, nums2)) 
+print(res)
+
+# filter ... filter the list according to some condition 
+
+evens = list(filter(lambda x : x%2 == 0, nums))
+print(evens)
+
+# List comprehension 
+
+evens = [x for x in nums if x%2==0]
+print(evens)
+
+from functools import reduce 
+
+prod = reduce(lambda x,y: x*y, nums)
+print(prod) # 1*2*3*4*5*6
