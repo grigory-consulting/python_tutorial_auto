@@ -1,0 +1,30 @@
+# Plan Online Shop 
+
+- class Product
+    - attributes
+        - id
+        - name 
+        - price
+        - quantity
+    - methods
+        - buy 
+        - stock_up
+- class ShoppingCart
+    - attributes 
+        - items: dict[Product]
+    - methods
+        - add 
+        - delete
+        - display 
+        - clear 
+        - total_price 
+        - total_quantity 
+- class Client  
+    - attributes 
+        - id
+        - name
+        - address 
+        - ....
+        - shopping_cart: ShoppingCart 
+    - methods 
+        - order 
