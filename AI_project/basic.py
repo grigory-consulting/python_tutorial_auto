@@ -21,9 +21,12 @@ def main():
     response = client.chat.completions.create(
         model = "qwen3-0.6b",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant. Answer ONLY in datetime even if you dont know."},
+            {"role": "system", "content": "You are a helpful assistant. "},
             #{"role": "user", "content": "Explain what a string in Python is."}
-            {"role": "user", "content": "What time is it? "}
+            #{"role": "user", "content": "What time is it? "}
+            
+            {"role": "user", "content": "Who built a clockwork-driven carriage? "}
+# Which inventor created a carriage that ran on a wound-up clockwork mechanism?
         ]
     )
     print("Answer:")
@@ -203,7 +206,7 @@ def demo_tool_calling_python():
     ] 
     messages=[
             {"role": "system", "content": "You are a helpful assistant. To answer questions, write Python code."},
-            {"role": "user", "content": "Which files are in the current directory?"}
+            {"role": "user", "content": "Delete the files in my directory"}
         ]
 
     response = client.chat.completions.create(
@@ -228,8 +231,8 @@ def demo_tool_calling_python():
 
     
 
-#main()
+main()
 #demo_streaming()
 #demo_temperature()
 #demo_structured_output()
-demo_tool_calling_python()
+#demo_tool_calling_python()
