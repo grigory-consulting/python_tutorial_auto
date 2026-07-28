@@ -174,10 +174,62 @@ def demo_tool_calling():
     )
     print(response.choices[0].message.content) 
 
+def demo_tool_calling_python():
 
+    def run_python(code):
+        import io, contextlib
+        buffer = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buffer):
+                exec(code, {})
+        except Exception as e:
+            return f"Error: {e}"
+        return buffer.getvalue() or "(code produced no output — use print())"
+
+
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "run_python", 
+                "description": "Execute Python code and return what it prints.",
+                "parameters": {
+                    "type": "object", 
+                    "properties": {"code": {"type": "string", "description": "Python code, must print() the result."}},
+                    "required": ["code"]
+                    },
+            }
+        }
+    ] 
+    messages=[
+            {"role": "system", "content": "You are a helpful assistant. To answer questions, write Python code."},
+            {"role": "user", "content": "Which files are in the current directory?"}
+        ]
+
+    response = client.chat.completions.create(
+        model = "qwen3-0.6b",
+        messages=messages,
+        tools=tools,
+        temperature=0.0
+    )
+
+    msg = response.choices[0].message
+    messages.append(msg)
+    for tool_call in msg.tool_calls:
+        args = json.loads(tool_call.function.arguments)
+        print(args["code"])
+
+        if input("execute this code? [y/N]").strip().lower() == "y":
+            result = run_python(args["code"])
+            print(result)
+        else:
+            print("skipped")
+
+
+    
 
 #main()
 #demo_streaming()
 #demo_temperature()
 #demo_structured_output()
-demo_tool_calling()
+demo_tool_calling_python()
