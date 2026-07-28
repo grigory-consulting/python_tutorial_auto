@@ -2,6 +2,7 @@
 
 from openai import OpenAI
 import time
+import json 
 
 
 client = OpenAI(
@@ -20,8 +21,9 @@ def main():
     response = client.chat.completions.create(
         model = "qwen3-0.6b",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant"},
-            {"role": "user", "content": "Explain what a string in Python is."}
+            {"role": "system", "content": "You are a helpful assistant. Answer ONLY in datetime even if you dont know."},
+            #{"role": "user", "content": "Explain what a string in Python is."}
+            {"role": "user", "content": "What time is it? "}
         ]
     )
     print("Answer:")
@@ -98,6 +100,84 @@ def demo_temperature(): # Temperature is a value for creativeness/fantasy
         print(f"temp={temp}: {response.choices[0].message.content}")
         
 
-# main()
+def demo_structured_output():
+    schema = {
+        "type": "object",
+        "properties": {
+            "item": {"type": "string"},
+            "quantity": {"type": "integer"},
+            "deadline": {"type": ["string", "null"]}
+        },
+        "required": ["item", "quantity", "deadline"]
+    }
+
+    response = client.chat.completions.create(
+        model= "qwen3-0.6",
+        messages=[
+            {"role": "system","content":"Extract the order: item = product name (singular), quantity = number, deadline = due date or null"},
+            {"role": "user", "content": "We require five docking stations by the end of September."}
+        ],
+        response_format={
+            "type": "json_schema",
+            "json_schema": {"name": "order", "schema": schema}
+        }, 
+        temperature=0.0,
+    )
+
+    order = json.loads(response.choices[0].message.content) # Python Object: Dictionary 
+    print(order)
+    print(order["quantity"], type(order["quantity"]))
+
+def demo_tool_calling():
+
+    def get_current_time():
+        from datetime import datetime
+        return datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    available_tools = {"get_current_time": get_current_time}
+    
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_current_time", 
+                "description": "Return the current local date and time",
+                "parameters": {"type": "object", "properties": {}},
+            }
+        }
+    ]
+
+    messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "What time is it? "}
+        ]
+
+    response = client.chat.completions.create(
+        model="qwen3-0.6b",
+        messages=messages,
+        tools=tools,
+        temperature=0.0
+    )
+
+    msg = response.choices[0].message
+    print(msg.tool_calls[0])
+    result = available_tools[msg.tool_calls[0].function.name]() # () -> actual function call 
+
+    messages.append(msg)
+    messages.append({"role": "tool", "tool_call_id": msg.tool_calls[0].id, "content": result})
+
+    response = client.chat.completions.create(
+        model="qwen3-0.6b",
+        messages=messages,
+        tools=tools,
+        temperature=0.0
+    )
+    print(response.choices[0].message.content) 
+
+
+
+#main()
 #demo_streaming()
-demo_temperature()
+#demo_temperature()
+#demo_structured_output()
+demo_tool_calling()
