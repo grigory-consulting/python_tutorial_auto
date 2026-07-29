@@ -4,6 +4,9 @@ from openai import OpenAI
 from pathlib import Path
 import subprocess
 from datetime import date, datetime
+import json
+
+
 
 ROOT = Path(__file__).resolve().parent
 SOUL = ROOT / "SOUL.md"
@@ -16,6 +19,7 @@ BASE_URL = "http://localhost:1234/v1"
 API_KEY = "lm-studio"
 client = OpenAI(base_url=BASE_URL, api_key=API_KEY)
 MODEL = "qwen3-0.6b"
+MODEL = "qwen/qwen3.6-35b-a3b"
 
 def run_shell(command):
     print(f"\n  [tool] run_bash: {command}")
@@ -138,14 +142,29 @@ def system_prompt():
     return soul + "\n\n" + "## Memory " + memory
 
 def run(messages):
+    for i in range(MAX_STEPS):
+        response = client.chat.completions.create(
+            model=MODEL, messages=messages, tools=TOOLS
+        )
 
-    response = client.chat.completions.create(
-        model=MODEL, messages=messages, tools=TOOLS
-    )
+        msg = response.choices[0].message
+        if not msg.tool_calls:
+            print(msg.content)
+            return # escape the function
 
-    msg = response.choices[0].message
+        messages.append(msg)
 
-    print(msg.content)
+        # call the tools
+        for call in msg.tool_calls:
+            arguments = json.loads(call.function.arguments)
+            result = available_tools[call.function.name](**arguments)
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": call.id,
+                    "content": str(result)
+                }
+            )
 
 def main():
     messages = [{"role": "system", "content": system_prompt()}] 
