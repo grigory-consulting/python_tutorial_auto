@@ -1,29 +1,56 @@
 
 
 from openai import OpenAI
+from pathlib import Path
+import subprocess
+from datetime import date, datetime
+
+ROOT = Path(__file__).resolve().parent
+SOUL = ROOT / "SOUL.md"
+MEMORY = ROOT / "MEMORY.md"
+SKILLS = ROOT / "skills"
+MAX_STEPS = 20 # agent loop  
+
 
 BASE_URL = "http://localhost:1234/v1"
-
 API_KEY = "lm-studio"
-
 client = OpenAI(base_url=BASE_URL, api_key=API_KEY)
-
 MODEL = "qwen3-0.6b"
 
 def run_shell(command):
-    pass
+    print(f"\n  [tool] run_bash: {command}")
+    if input("  execute? [y/N] ").strip().lower() != "y":
+        return "User declined to run this command."
+    result = subprocess.run(command, shell=True, capture_output=True,
+                            text=True, timeout=60)
+    return (result.stdout + result.stderr)[-4000:] or "(no output)"
 
-def read_file(file):
-    pass
 
-def write_file(file):
-    pass
+def read_file(path: str) -> str:
+    return Path(path).expanduser().read_text()[:8000]
 
-def save_memory(fact):
-    pass
 
-def read_skill(name):
-    pass
+def write_file(path: str, content: str) -> str:
+    p = Path(path).expanduser()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(content)
+    return f"Wrote {len(content)} chars to {p}"
+
+
+def save_memory(fact: str) -> str:
+    with MEMORY.open("a") as f:
+        f.write(f"- {date.today()}: {fact}\n")
+    return "Saved."
+
+
+def read_skill(name: str) -> str:
+    path = SKILLS / f"{name}.md"
+    if not path.exists():
+        return f"No skill named '{name}'. Available: " + ", ".join(
+            p.stem for p in SKILLS.glob("*.md"))
+    return path.read_text()
+
+
 
 TOOLS = [
     {
@@ -104,3 +131,38 @@ available_tools = {
     "read_skill": read_skill,
 }
 
+def system_prompt():
+    soul = SOUL.read_text() if SOUL.exists() else "You are helpful agent."
+    memory = MEMORY.read_text() if MEMORY.exists() else "(none)"
+
+    return soul + "\n\n" + "## Memory " + memory
+
+def run(messages):
+
+    response = client.chat.completions.create(
+        model=MODEL, messages=messages, tools=TOOLS
+    )
+
+    msg = response.choices[0].message
+
+    print(msg.content)
+
+def main():
+    messages = [{"role": "system", "content": system_prompt()}] 
+    while True:
+        try:
+            user = input("you> ").strip()
+        except (KeyboardInterrupt):
+            print()
+            break
+
+        if not user:
+            continue
+
+        messages.append({"role": "user", "content": user})
+        run(messages)
+        # Update memory 
+        messages[0] = {"role": "system", "content": system_prompt()}
+
+
+main()
